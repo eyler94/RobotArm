@@ -22,6 +22,19 @@ def extractColors(hsv):
 
     return img_b, img_g, img_r    
 
+def filterNoise(img1_b, img1_g, img1_r):
+    kernel = np.ones((5,5), np.uint8)
+    iters = 2
+    img1_b = cv2.erode(img1_b, kernel, iterations=iters)
+    img1_g = cv2.erode(img1_g, kernel, iterations=iters)
+    img1_r = cv2.erode(img1_r, kernel, iterations=iters)
+
+    img1_b = cv2.dilate(img1_b, kernel, iterations=iters)
+    img1_g = cv2.dilate(img1_g, kernel, iterations=iters)
+    img1_r = cv2.dilate(img1_r, kernel, iterations=iters)
+
+    return img1_b, img1_g, img1_r
+
 
 if __name__ == "__main__":
     #This is for my tests. I'll just call the above functions form main.py when doing the implementation.
@@ -31,6 +44,7 @@ if __name__ == "__main__":
     img1_hsv = convertToHSV(img1)
 
     img1_b, img1_g, img1_r = extractColors(img1_hsv)
+    img1_b, img1_g, img1_r = filterNoise(img1_b, img1_g, img1_r)
 
     cv2.imshow("Img1", img1)
     cv2.imshow("Blue", img1_b)
