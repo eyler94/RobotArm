@@ -44,6 +44,7 @@ def findTomatoes(img1_b, img1_g, img1_r):
     params.filterByConvexity = False
     params.minThreshold = 0
     params.maxThreshold = 150 
+    params.filterByColor = False
 
     detector = cv2.SimpleBlobDetector_create()
     pts_b = detector.detect(img1_b)
