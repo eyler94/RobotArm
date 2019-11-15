@@ -24,7 +24,7 @@ def extractColors(hsv):
 
 def filterNoise(img1_b, img1_g, img1_r):
     kernel = np.ones((5,5), np.uint8)
-    iters = 2
+    iters = 3
     img1_b = cv2.erode(img1_b, kernel, iterations=iters)
     img1_g = cv2.erode(img1_g, kernel, iterations=iters)
     img1_r = cv2.erode(img1_r, kernel, iterations=iters)
@@ -38,7 +38,7 @@ def filterNoise(img1_b, img1_g, img1_r):
 def findTomatoes(img1_b, img1_g, img1_r):
     params = cv2.SimpleBlobDetector_Params()
     params.filterByArea = False
-    params.minArea = 10 #This can be tuned
+    params.minArea = 100 #This can be tuned
     params.filterByCircularity = False 
     params.filterByInertia = False 
     params.filterByConvexity = False
@@ -52,21 +52,6 @@ def findTomatoes(img1_b, img1_g, img1_r):
     pts_g = detector.detect(img1_g)
     pts_r = detector.detect(img1_r)
 
-    # imgs = [img1_b, img1_g, img1_r]
-    # pts = []
-    # for i in range(len(imgs)):
-    #     img = imgs[i]
-    #     im2, contours = cv2.findContours(img, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-    #     temp = []
-    #     for c in contours:
-    #         M = cv2.moments(c, True)
-    #         cx = int(M["m10"]/M["m00"])
-    #         cy = int(M["m01"]/M["m00"])
-    #         temp.append(np.array([cx, cy]))
-    #     temp = np.array(temp)
-    #     pts.append(temp)
-
-    # return pts[0], pts[1], pts[2]
     return pts_b, pts_g, pts_r
 
 if __name__ == "__main__":
