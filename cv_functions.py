@@ -54,6 +54,35 @@ def findTomatoes(img1_b, img1_g, img1_r):
 
     return pts_b, pts_g, pts_r
 
+def getColorAndTarget(pts_b, pts_g, pts_r):
+    min_dist = 1e6
+    target = None
+    if not len(pts_r) == 0:
+        color = 1
+        for keypt in pts_r: #Get that is minimum distance from the top left corner
+            pt = np.array(keypt.pt)
+            dist = np.linalg.norm(pt)
+            if dist < min_dist:
+                target = pt
+    elif not len(pts_g) == 0:
+        color = 2
+        for keypt in pts_g:
+            pt = np.array(keypt.pt)
+            dist = np.linalg.norm(pt)
+            if dist < min_dist:
+                target = pt
+    elif not len(pts_b) == 0:
+        color = 3
+        for keypt in pts_b:
+            pt = np.array(keypt.pt)
+            dist = np.linalg.norm(pt)
+            if dist < min_dist:
+                target = pt
+    else:
+        color = 4
+    
+    return color, target
+
 if __name__ == "__main__":
     #This is for my tests. I'll just call the above functions form main.py when doing the implementation.
     img1 = cv2.imread("racquetball_red_green.jpg")
@@ -66,9 +95,12 @@ if __name__ == "__main__":
 
     #Detect individual balls
     blue_pts, green_pts, red_pts = findTomatoes(img1_b, img1_g, img1_r)
-    print(blue_pts)
+    print(red_pts) # access pts via  blue_pts[#].pt
     print(green_pts)
-    print(red_pts)
+    print(blue_pts)
+
+    # get color target: red = 1, green = 2, blue = 3, no targets = 4
+    color, target = getColorAndTarget(blue_pts, green_pts, red_pts)
     
     #Draw points on each picture
     img1_b = cv2.drawKeypoints(img1_b, blue_pts, np.array([]), (0,0,255), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
