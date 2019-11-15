@@ -54,30 +54,29 @@ def findTomatoes(img1_b, img1_g, img1_r):
 
     return pts_b, pts_g, pts_r
 
+def getMinDist(pts):
+    min_dist = 1e6
+    target = None
+    for keypt in pts:
+        pt = np.array(keypt.pt)
+        dist = np.linalg.norm(pt)
+        if dist < min_dist:
+            target = pt
+    
+    return target
+
 def getColorAndTarget(pts_b, pts_g, pts_r):
     min_dist = 1e6
     target = None
     if not len(pts_r) == 0:
         color = 1
-        for keypt in pts_r: #Get that is minimum distance from the top left corner
-            pt = np.array(keypt.pt)
-            dist = np.linalg.norm(pt)
-            if dist < min_dist:
-                target = pt
+        target  = getMinDist(pts_r)
     elif not len(pts_g) == 0:
         color = 2
-        for keypt in pts_g:
-            pt = np.array(keypt.pt)
-            dist = np.linalg.norm(pt)
-            if dist < min_dist:
-                target = pt
+        target = getMinDist(pts_g)
     elif not len(pts_b) == 0:
         color = 3
-        for keypt in pts_b:
-            pt = np.array(keypt.pt)
-            dist = np.linalg.norm(pt)
-            if dist < min_dist:
-                target = pt
+        target = getMinDist(pts_b)
     else:
         color = 4
     
@@ -94,13 +93,17 @@ if __name__ == "__main__":
     img1_b, img1_g, img1_r = filterNoise(img1_b, img1_g, img1_r)
 
     #Detect individual balls
-    blue_pts, green_pts, red_pts = findTomatoes(img1_b, img1_g, img1_r)
+    blue_pts, green_pts, red_pts = findTomatoes(img1_b, img1_g, img1_r) #For some reason didn't work on balls that were touching. Try to keep balls farther apart
     print(red_pts) # access pts via  blue_pts[#].pt
     print(green_pts)
     print(blue_pts)
 
     # get color target: red = 1, green = 2, blue = 3, no targets = 4
     color, target = getColorAndTarget(blue_pts, green_pts, red_pts)
+
+    img_size = img1_b.shape
+    center_pt = np.array(img_size)/2.0 #  Will use this in visual servoing to determine if we are above the ball
+    print(center_pt)
     
     #Draw points on each picture
     img1_b = cv2.drawKeypoints(img1_b, blue_pts, np.array([]), (0,0,255), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
