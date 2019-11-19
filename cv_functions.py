@@ -83,8 +83,8 @@ def getColorAndTarget(pts_b, pts_g, pts_r):
     return color, target
 
 def getDistToCenter(center_pt, ball_pos): # Used for visual servoing
-    ds = ball_pos - center_pt
-    return ds[0], -ds[1]  # Negate y because 0,0 in the img is upper left. But if ball is closer to top of pic we want to go forward
+    ds = center_pt - ball_pos
+    return ds[0], ds[1]  
 
 if __name__ == "__main__":
     #This is for my tests. I'll just call the above functions form main.py when doing the implementation.
