@@ -17,7 +17,7 @@ class RobotArm:
 
     def inv_kine(self, x, y, z):
         print("Calculating inverse kinematics.")
-        self.q = np.zeros([7, 1]) # Be better if we use the current configuration. Closer to the answer
+        self.q = np.zeros([7, 1]) # Be best if we use the current configuration. Closer to the answer
         return self.q
 
     def acquire_targ(self):
@@ -27,7 +27,7 @@ class RobotArm:
         
         # Probably have some while loop that iterates through inv_kine using until it reaches the target.
         # while dist[0] > min_dist and dist[1] > min_dist:
-        #     img = getImg()
+        #     img = getImg() #How do we get this?
         #     hsv = cvfun.convertToHSV(img)
         #     img_b, img_g, img_r = cvfun.extractColors(hsv)
         #     img_b, img_g, img_r = cvfun.filterNoise(img_b, img_g, img_r)
@@ -40,6 +40,8 @@ class RobotArm:
         #     dx, dy = cvfun.getDistToCenter(center_pt, target)
         #     delta_x = dx * kp #Will need to add these to the current position
         #     delta_y = dy * kp 
+        #     x = x + delta_x
+        #     y = y + delta_y
         #     q = self.inv_kine(x, y, z)
         #     # baxter.setPosition(q)
         return self.color
