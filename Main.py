@@ -17,24 +17,29 @@ class RobotArm:
 
     def inv_kine(self, x, y, z):
         print("Calculating inverse kinematics.")
-        self.q = np.zeros([7, 1])
+        self.q = np.zeros([7, 1]) # Be better if we use the current configuration. Closer to the answer
         return self.q
 
     def acquire_targ(self):
         print("Acquiring target.")
+        dist = np.array([1e6, 1e6])
+        min_dist = 3 #Pixels. May want to change this
         
         # Probably have some while loop that iterates through inv_kine using until it reaches the target.
-        #while dist > min:
-        #get image here
-        #convert to hsv and threshold
-        #filter the noise from the thresholding
-        #find tomatos
-        # get color and target
-        #if color == 4: break
-        #getDistToCenter
-        #if dist < threshold : return color of ball
-        #visual servoing on the distance kp * dist + ki * integral of error.
-        #get new desired position
-        #inverse kinematics
-        #command baxter to new position with desired orientation
-        self.color = 0
+        # while dist[0] > min_dist and dist[1] > min_dist:
+        #     img = getImg()
+        #     hsv = cvfun.convertToHSV(img)
+        #     img_b, img_g, img_r = cvfun.extractColors(hsv)
+        #     img_b, img_g, img_r = cvfun.filterNoise(img_b, img_g, img_r)
+        #     pts_b, pts_g, pts_r = cvfun.findTomatoes(img_b, img_g, img_r)
+        #     self.color, target = cvfun.getColorAndTarget(pts_b, pts_g, pts_r)
+        #     if self.color == 4: # no targets
+        #         break
+        #     img_size = img_b.shape
+        #     center_pt = np.array(img_size)/2.0
+        #     dx, dy = cvfun.getDistToCenter(center_pt, target)
+        #     delta_x = dx * kp #Will need to add these to the current position
+        #     delta_y = dy * kp 
+        #     q = self.inv_kine(x, y, z)
+        #     # baxter.setPosition(q)
+        return self.color
