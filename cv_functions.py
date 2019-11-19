@@ -82,6 +82,10 @@ def getColorAndTarget(pts_b, pts_g, pts_r):
     
     return color, target
 
+def getDistToCenter(center_pt, ball_pos): # Used for visual servoing
+    ds = ball_pos - center_pt
+    return ds[0], -ds[1]  # Negate y because 0,0 in the img is upper left. But if ball is closer to top of pic we want to go forward
+
 if __name__ == "__main__":
     #This is for my tests. I'll just call the above functions form main.py when doing the implementation.
     img1 = cv2.imread("racquetball_red_green.jpg")
@@ -100,10 +104,16 @@ if __name__ == "__main__":
 
     # get color target: red = 1, green = 2, blue = 3, no targets = 4
     color, target = getColorAndTarget(blue_pts, green_pts, red_pts)
+    print(color)
+    print(target)
 
     img_size = img1_b.shape
     center_pt = np.array(img_size)/2.0 #  Will use this in visual servoing to determine if we are above the ball
     print(center_pt)
+
+    dx, dy = getDistToCenter(center_pt, target)
+    print(dx)
+    print(dy)
     
     #Draw points on each picture
     img1_b = cv2.drawKeypoints(img1_b, blue_pts, np.array([]), (0,0,255), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
