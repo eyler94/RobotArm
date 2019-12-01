@@ -14,10 +14,32 @@ class RobotArm:
         self.kp = 0.0
         self.kd = 0.0
         self.ki = 0.0
+        self.limb = RadBaxterLimb('right')
 
     def inv_kine(self, x, y, z):
         print("Calculating inverse kinematics.")
-        self.q = np.zeros([7, 1]) # Be best if we use the current configuration. Closer to the answer
+
+        # Calculate the necessary orientation, it is constant, so we just need to know what it is.
+        # TODO: Put the baxter in the orientation desired and input that into here.
+        des_or = np.array([0.0, 0.0, 0.0])
+
+        # Calculate the errors
+        curr_pos = limb.get_kdl_forward_position_kinematics()
+        # TODO: Get current orientation into axis angle state based on what is coming out from previous function
+        curr_pos = curr_pos[0:3]
+        err_pos = np.array([x, y, z]) - curr_pos
+        err_or = des_or - curr_or
+
+        # Calculate the errors
+        error = np.array([err_pos[0],err_pos[1],err_pos[2],err_or[0],err_or[1],err_or[2]])
+        k = np.diag((self.kp,self.kp,self.kp,self.ki,self.ki,self.ki))
+
+        e = np.matmul(k,error)
+
+        Jt = self.limb.get_kdl_jacobian_transpose()
+        # Can make one row of the Jacobian zero if we don't care about one axis of orientation, or make e zero for that joint
+
+        self.q = self.limb.get_joint_angles() + np.matmul(Jt,e)
         return self.q
 
     def acquire_targ(self):
