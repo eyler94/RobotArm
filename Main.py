@@ -9,6 +9,9 @@ import baxter_left_kinematics as blk
 import baxter_right_kinematics as brk
 import cv_functions as cvfun
 import subprocess
+from sensor_msgs.msg import Image
+from cv_bridge import CvBridge
+from copy import deepcopy
 
 class RobotArm:
     def __init__(self):
@@ -17,12 +20,25 @@ class RobotArm:
         self.color = 4  # red = 1, green = 2, blue = 3, No targets = 4
 
         #Not sure we will need all of these. Maybe just kp/ki
-        self.kp = 0.0
+        self.kp = 0.1
         self.kd = 0.0
         self.ki = 0.0
         self.limb = RadBaxterLimb('right')
 
+        #image subscriber
+        self.img_sub = rospy.Subscriber("/cameras/right_hand/camera/image", Image, self.imgCallback)
+        self.img = None
+        self.CvImg = CvBridge()
+
         self.control_rate = rospy.Rate(500)
+    
+    def imgCallback(self, data):
+        print("Converting Image")
+        try:
+            self.img = self.CvImg.imgmsg_to_cv2(data, "bgr8")
+        except CvBridgeError as e:
+            print(e)
+            
 
     def inv_kine(self, x, y, z):
         print("Calculating inverse kinematics.")
@@ -32,7 +48,7 @@ class RobotArm:
         des_or = np.array([0.0, 0.0, 0.0])
 
         # Calculate the errors
-        curr_pos = limb.get_kdl_forward_position_kinematics()
+        curr_pos = self.limb.get_kdl_forward_position_kinematics()
         # TODO: Get current orientation into axis angle state based on what is coming out from previous function
         curr_pos = curr_pos[0:3]
         err_pos = np.array([x, y, z]) - curr_pos
@@ -40,7 +56,7 @@ class RobotArm:
 
         # Calculate the errors
         error = np.array([err_pos[0],err_pos[1],err_pos[2],err_or[0],err_or[1],err_or[2]])
-        k = np.diag((self.kp,self.kp,self.kp,self.ki,self.ki,self.ki))
+        k = np.diag((self.kp,self.kp,self.kp,self.ki,self.ki,self.ki)) #These should be different k's. The k's here are for moving wrt visual info
 
         e = np.matmul(k,error)
 
@@ -54,27 +70,35 @@ class RobotArm:
         print("Acquiring target.")
         dist = np.array([1e6, 1e6])
         min_dist = 3 #Pixels. May want to change this
+        curr_pos = self.limb.get_kdl_forward_position_kinematics()
+        x = curr_pos.item(0)
+        y = curr_pos.item(1)
+        z = curr_pos.item(2)
 
         # Probably have some while loop that iterates through inv_kine using until it reaches the target.
-        # while dist[0] > min_dist and dist[1] > min_dist:
-        #     img = getImg() #How do we get this?
-        #     hsv = cvfun.convertToHSV(img)
-        #     img_b, img_g, img_r = cvfun.extractColors(hsv)
-        #     img_b, img_g, img_r = cvfun.filterNoise(img_b, img_g, img_r)
-        #     pts_b, pts_g, pts_r = cvfun.findTomatoes(img_b, img_g, img_r)
-        #     self.color, target = cvfun.getColorAndTarget(pts_b, pts_g, pts_r)
-        #     if self.color == 4: # no targets
-        #         break
-        #     img_size = img_b.shape
-        #     center_pt = np.array(img_size)/2.0
-        #     dx, dy = cvfun.getDistToCenter(center_pt, target)
-        #     delta_x = dx * kp #Will need to add these to the current position
-        #     delta_y = dy * kp
-        #     x = x + delta_x
-        #     y = y + delta_y
-        #     q = self.inv_kine(x, y, z)
-        #     # baxter.setPosition(q)
-        return self.color
+        while dist[0] > min_dist and dist[1] > min_dist:
+            img = deepcopy(self.img)
+            hsv = cvfun.convertToHSV(img)
+            img_b, img_g, img_r = cvfun.extractColors(hsv)
+            img_b, img_g, img_r = cvfun.filterNoise(img_b, img_g, img_r)
+            pts_b, pts_g, pts_r = cvfun.findTomatoes(img_b, img_g, img_r)
+            self.color, target = cvfun.getColorAndTarget(pts_b, pts_g, pts_r)
+            if self.color == 4: # no targets
+                break
+            img_size = img_b.shape
+            center_pt = np.array(img_size)/2.0
+            dx, dy = cvfun.getDistToCenter(center_pt, target)
+            delta_x = dx * kp #Will need to add these to the current position
+            delta_y = dy * kp
+            x = x + delta_x
+            y = y + delta_y
+            q = self.inv_kine(x, y, z)
+            self.limb.setPosition(q)
+        return self.color, x, y
+    
+    def descend(self, x, y, z_ball):
+        q_des = self.inv_kine(x, y, z_ball)
+        self.movin(q_des) #may need to repeat this or shove this function in a while loop and do smaller steps
 
     def bash_start_stuff(self):
         Hookup = "cd ~/baxter_ws; ./baxter.sh; cd -"
@@ -140,6 +164,9 @@ class RobotArm:
         self.right_gripper.open()
 
         # Acquire/Move to target (set self.color = #)
+        z_ball = 0.0 # TODO: Need to figure out what this is
+        self.color, x, y = self.acquire_targ()
+        self.descend(x, y, z_ball)
 
         # Close Gripper
         self.right_gripper.close()
