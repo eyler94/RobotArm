@@ -1,0 +1,13 @@
+[baxter - http://Thing2.local:11311] radlab@RadLab-12:~/Desktop/robotics_ws/src/rad_baxter_limb/src/rad_baxter_limb$ python Main.py 
+Initializing robot arm.
+Unknown tag: materialScalar element defined multiple times: collisionScalar element defined multiple times: collisionUnknown tag: materialScalar element defined multiple times: collisionScalar element defined multiple times: collisionMove to the safe position and press enter.
+safe [-0.13038837 -0.49125735  0.70946611  0.8943108  -1.00820887  0.67495155
+ -2.46855858] (7,) -0.13038836697
+Move to the bucket 1 position and press enter.^X^Z
+[1]+  Stopped                 python Main.py
+[baxter - http://Thing2.local:11311] radlab@RadLab-12:~/Desktop/robotics_ws/src/rad_baxter_limb/src/rad_baxter_limb$ python Main.py 
+Initializing robot arm.
+Unknown tag: materialScalar element defined multiple times: collisionScalar element defined multiple times: collisionUnknown tag: materialScalar element defined multiple times: collisionScalar element defined multiple times: collisionMove to the safe position and press enter.f
+safe [-0.13192235 -0.49125735  0.70946611  0.89546128 -1.00859237  0.67495155
+ -2.46817509] (7,) <type 'numpy.ndarray'>
+Move to the bucket 1 position and press enter.

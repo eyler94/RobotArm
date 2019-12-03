@@ -9,11 +9,11 @@ def extractColors(hsv):
     blue_low = np.array([100, 50, 50]) #Color bounds for the blue picture
     blue_high = np.array([130, 255, 255])
 
-    red_low = np.array([10, 10, 10])
-    red_high = np.array([150, 255, 255])
+    red_low = np.array([10, 10, 10]) #10
+    red_high = np.array([150, 255, 255]) #150
 
-    green_low = np.array([60, 50, 50])
-    green_high = np.array([90, 255, 255])
+    green_low = np.array([60, 50, 50]) #60
+    green_high = np.array([90, 255, 255]) #90
 
     img_b = cv2.inRange(hsv, blue_low, blue_high)
     img_r = cv2.inRange(hsv, red_low, red_high)
@@ -47,7 +47,8 @@ def findTomatoes(img1_b, img1_g, img1_r):
     params.filterByColor = True
     params.blobColor = 255
 
-    detector = cv2.SimpleBlobDetector_create(params)
+    # detector = cv2.SimpleBlobDetector_create(params)
+    detector = cv2.SimpleBlobDetector(params)
     pts_b = detector.detect(img1_b)
     pts_g = detector.detect(img1_g)
     pts_r = detector.detect(img1_r)
@@ -84,7 +85,7 @@ def getColorAndTarget(pts_b, pts_g, pts_r):
 
 def getDistToCenter(center_pt, ball_pos): # Used for visual servoing
     ds = center_pt - ball_pos
-    return ds[0], ds[1]  
+    return -ds[0], -ds[1]  
 
 if __name__ == "__main__":
     #This is for my tests. I'll just call the above functions form main.py when doing the implementation.
