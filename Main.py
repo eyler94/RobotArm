@@ -1,20 +1,28 @@
 #!/usr/bin/env python
 
+import rospy
+import tf
 import numpy as np
+from rad_baxter_limb import RadBaxterLimb
+import baxter_interface
+import baxter_left_kinematics as blk
+import baxter_right_kinematics as brk
 import cv_functions as cvfun
-
+import subprocess
 
 class RobotArm:
     def __init__(self):
         print("Initializing robot arm.")
         self.q = np.zeros([7, 1])
-        self.color = 0  # red = 1, green = 2, blue = 3, No targets = 4
+        self.color = 4  # red = 1, green = 2, blue = 3, No targets = 4
 
         #Not sure we will need all of these. Maybe just kp/ki
         self.kp = 0.0
         self.kd = 0.0
         self.ki = 0.0
         self.limb = RadBaxterLimb('right')
+
+        self.control_rate = rospy.Rate(500)
 
     def inv_kine(self, x, y, z):
         print("Calculating inverse kinematics.")
@@ -46,7 +54,7 @@ class RobotArm:
         print("Acquiring target.")
         dist = np.array([1e6, 1e6])
         min_dist = 3 #Pixels. May want to change this
-        
+
         # Probably have some while loop that iterates through inv_kine using until it reaches the target.
         # while dist[0] > min_dist and dist[1] > min_dist:
         #     img = getImg() #How do we get this?
@@ -61,9 +69,98 @@ class RobotArm:
         #     center_pt = np.array(img_size)/2.0
         #     dx, dy = cvfun.getDistToCenter(center_pt, target)
         #     delta_x = dx * kp #Will need to add these to the current position
-        #     delta_y = dy * kp 
+        #     delta_y = dy * kp
         #     x = x + delta_x
         #     y = y + delta_y
         #     q = self.inv_kine(x, y, z)
         #     # baxter.setPosition(q)
         return self.color
+
+    def bash_start_stuff(self):
+        Hookup = "cd ~/baxter_ws; ./baxter.sh; cd -"
+        # Hookup = "cd ~; ls; cd -"
+        process = subprocess.Popen(Hookup, shell=True)
+
+        Untuck_N_Source = "uta; source ~/Desktop/robotics_ws/devel/setup.bash --extend; cd ~/Desktop/robotics_ws/src/rad_baxter_limb/src/rad_baxter_limb"
+        process = subprocess.Popen(Untuck_N_Source, shell=True)
+
+    def bash_end_stuff(self):
+        process = subprocess.Popen("ta", shell=True)
+
+    def init_spots(self):
+        raw_input("Move to the safe position and press enter.")
+        self.safe_pos = self.limb.get_joint_angles()
+        raw_input("Move to the bucket 1 position and press enter.")
+        self.bucket1_pos = self.limb.get_joint_angles()
+        raw_input("Move to the bucket 2 position and press enter.")
+        self.bucket2_pos = self.limb.get_joint_angles()
+        raw_input("Move to the bucket 3 position and press enter.")
+        self.bucket3_pos = self.limb.get_joint_angles()
+
+    def init_gripper_right(self):
+        self.right_gripper = baxter_interface.Gripper('right')
+        self.right_gripper.calibrate()
+        self.right_gripper.close()
+        self.right_gripper.open()
+
+    def init_gripper_left(self):
+        self.left_gripper = baxter_interface.Gripper('left')
+        self.left_gripper.calibrate()
+        self.left_gripper.close()
+        self.left_gripper.open()
+
+    def movin(self, target):
+        step = 1
+        while step < 2500:
+            limb.set_joint_positions_mod(target)
+            self.control_rate.sleep()
+            step = step + 1
+
+    def move_Bucket(self):
+        if self.color==1:
+            self.movin(self.bucket1_pos)
+        elif self.color==2:
+            self.movin(self.bucket2_pos)
+        elif self.color==3:
+            self.movin(self.bucket3_pos)
+        else:
+            print("Error, no target color assigned.")
+
+
+    def main(self):
+        bash_start_stuff()
+
+        #Initalize safe spot, buckets 1-3, and calibrate gripper
+        self.init_spots()
+        self.init_gripper_right()
+
+        # Move to safe spot
+        self.movin(self.safe_pos)
+
+        # Open Gripper
+        self.right_gripper.open()
+
+        # Acquire/Move to target (set self.color = #)
+
+        # Close Gripper
+        self.right_gripper.close()
+
+        # Move to bucket #
+        self.move_Bucket()
+
+        # Open Gripper
+        self.right_gripper.open()
+
+        # Move to safe spot
+        self.movin(self.safe_pos)
+
+        # Check for another ball / run a set number of times and increment.
+
+        # Finish up and tuck the arms
+        bash_end_stuff()
+
+
+if __name__ == '__main__':
+    rospy.init_node('BMM_Node')
+    RbtArm = RobotArm()
+    RbtArm.main()

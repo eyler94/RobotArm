@@ -1,0 +1,41 @@
+# These lines allow you to run code that talks to baxter
+cd ~/baxter_ws #moves you to the correct folder
+./baxter.sh
+
+#These two lines clear errors if you hit the e-stop button
+rosrun baxter_tools enable_robot.py -r
+rosrun baxter_tools enable_robot.py -e #this re-enables the robot
+
+#this line untucks his arms
+rosrun baxter_tools tuck_arms.py -u
+
+#alternatively this line is quicker to type
+uta
+
+#this line tucks his arms
+rosrun baxter_tools tuck_arms.py -t
+
+#alternatively this line is quicker to type
+ta
+
+#Always source this in your terminal or your code won't run
+source ~/Desktop/robotics_ws/devel/setup.bash --extend
+
+#Run this line to see the list of all the topics baxter publishes
+rostopic list
+
+#This line changes the directory to the folder in which much of the code
+#to do single joint forward kinematics lives. 
+cd ~/Desktop/robotics_ws/src/rad_baxter_limb/src/rad_baxter_limb
+
+#You can copy this workspace somewhere else, source your version of it, 
+#and then change the code as you like or add your own code. 
+#That would look like the following
+cd ~/Desktop/your_ws/src/rad_baxter_limb/src/rad_baxter_limb
+source ~/Desktop/your_ws/devel/setup.bash
+
+#Baxter runs on python 2 not python 3. 
+
+#Finally, it is possible to run all your code in simulation first, with a nice visuallation.
+#you would use a software called gazebo. Unfortunately I don't know a whole ton about it
+#so you might have to ask for some help from Dr. Killpack on how to get that up and running.
