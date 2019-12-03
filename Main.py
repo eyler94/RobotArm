@@ -126,7 +126,6 @@ class RobotArm:
         else:
             print("Error, no target color assigned.")
 
-
     def main(self):
         bash_start_stuff()
 
