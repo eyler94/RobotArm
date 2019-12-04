@@ -3,16 +3,17 @@
 import rospy
 import tf
 import numpy as np
-from rad_baxter_limb import RadBaxterLimb
-import baxter_interface
-import baxter_left_kinematics as blk
-import baxter_right_kinematics as brk
+# from rad_baxter_limb import RadBaxterLimb
+# import baxter_interface
+# import baxter_left_kinematics as blk
+# import baxter_right_kinematics as brk
 import cv_functions as cvfun
 import subprocess
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
 from copy import deepcopy
 import cv2
+import argparse
 
 class RobotArm:
     def __init__(self):
@@ -24,7 +25,7 @@ class RobotArm:
         self.kp = 0.005
         self.kd = 0.0
         self.ki = 0.0
-        self.limb = RadBaxterLimb('right')
+        # self.limb = RadBaxterLimb('right')
 
         #inverse kinematic gains
         self.k1 = .1
@@ -178,12 +179,24 @@ class RobotArm:
         else:
             print("Error, no target color assigned.")
 
-    def main(self):
+    def main(self, args):
         # self.bash_start_stuff()
         # cd ~/baxter_ws; ./baxter.sh; cd -; uta; source ~/Desktop/robotics_ws/devel/setup.bash --extend; cd ~/Desktop/robotics_ws/src/rad_baxter_limb/src/rad_baxter_limb
 
         #Initalize safe spot, buckets 1-3, and calibrate gripper
-        self.init_spots()
+        if not args.get("spots", False):
+            print("No location file provided.")
+            self.init_spots()
+            spots = np.array([self.safe_pos, self.bucket1_pos, self.bucket2_pos, self.bucket3_pos])
+            np.save("spots.npy", spots)
+        else:
+            print("Loading file.")
+            spots = np.load(args["spots"])
+            self.safe_pos = spots[0]
+            self.bucket1_pos = spots[1]
+            self.bucket2_pos = spots[2]
+            self.bucket3_pos = spots[3]
+
         self.init_gripper_right()
 
         # Move to safe spot
@@ -217,6 +230,11 @@ class RobotArm:
 
 
 if __name__ == '__main__':
+    ap = argparse.ArgumentParser()
+    ap.add_argument("-s", "--spots",
+                    help="Add optional spots file.")
+    args = vars(ap.parse_args())
+
     rospy.init_node('BMM_Node')
     RbtArm = RobotArm()
-    RbtArm.main()
+    RbtArm.main(args)
