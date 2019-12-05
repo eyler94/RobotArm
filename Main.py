@@ -29,8 +29,8 @@ class RobotArm:
         # self.limb = RadBaxterLimb('right')
 
         #inverse kinematic gains
-        self.k1 = .1
-        self.k2 = .01
+        self.k1 = 20 
+        self.k2 = 1
 
         #image subscriber
         self.img_sub = rospy.Subscriber("/cameras/right_hand_camera/image", Image, self.imgCallback)
@@ -48,33 +48,39 @@ class RobotArm:
             
     def inv_kine(self, x, y, z):
         print("Calculating inverse kinematics.")
+        eps = .001
+        i = 0
 
         # Calculate the necessary orientation, it is constant, so we just need to know what it is.
         des_or = np.array([ 0.51176522,  3.07447603, -0.01423531])
 
-        # Calculate the errors
-        curr_pos = self.limb.get_kdl_forward_position_kinematics()
-        q = curr_pos[3:]
-        R = tf.transformations.quaternion_matrix(q)
-        theta = np.arccos((np.trace(R) - 1)/2.0)
-        temp = np.array([R[2,1] - R[1,2], R[0,2]-R[2,0], R[1,0] - R[0,1]])
-        k = temp/(2 * np.sin(theta))
-        curr_or = k * theta
-        
-        curr_pos = curr_pos[0:3]
-        err_pos = np.array([x, y, z]) - curr_pos
-        err_or = des_or - curr_or
+        while i < 1000: #max number of iterations so it doesn't run forever
+            # Calculate the errors
+            curr_pos = self.limb.get_kdl_forward_position_kinematics()
+            q = curr_pos[3:]
+            R = tf.transformations.quaternion_matrix(q)
+            theta = np.arccos((np.trace(R) - 1)/2.0)
+            temp = np.array([R[2,1] - R[1,2], R[0,2]-R[2,0], R[1,0] - R[0,1]])
+            k = temp/(2 * np.sin(theta))
+            curr_or = k * theta
+            
+            curr_pos = curr_pos[0:3]
+            err_pos = np.array([x, y, z]) - curr_pos
+            err_or = des_or - curr_or
 
-        # Calculate the errors
-        error = np.array([err_pos[0],err_pos[1],err_pos[2],err_or[0],err_or[1],err_or[2]])
-        k = np.diag((self.k1,self.k1,self.k1,self.k2,self.k2,self.k2))
+            # Calculate the errors
+            error = np.array([err_pos[0],err_pos[1],err_pos[2],err_or[0],err_or[1],err_or[2]])
+            k = np.diag((self.k1,self.k1,self.k1,self.k2,self.k2,self.k2))
 
-        e = np.matmul(k,error)
+            e = np.matmul(k,error)
+            if np.linalg.norm(error) < eps:
+                break
 
-        Jt = self.limb.get_kdl_jacobian_transpose()
-        # Can make one row of the Jacobian zero if we don't care about one axis of orientation, or make e zero for that joint
+            Jt = self.limb.get_kdl_jacobian_transpose()
+            # Can make one row of the Jacobian zero if we don't care about one axis of orientation, or make e zero for that joint
 
-        self.q = self.limb.get_joint_angles() + np.matmul(Jt,e)
+            self.q = self.limb.get_joint_angles() + np.matmul(Jt,e)
+            i+=1
         return np.asarray(self.q).reshape(7)
 
     def acquire_targ(self):
