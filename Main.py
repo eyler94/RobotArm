@@ -3,12 +3,13 @@
 import rospy
 import tf
 import numpy as np
-# from rad_baxter_limb import RadBaxterLimb
-# import baxter_interface
-# import baxter_left_kinematics as blk
-# import baxter_right_kinematics as brk
+from rad_baxter_limb import RadBaxterLimb
+import baxter_interface
+import baxter_left_kinematics as blk
+import baxter_right_kinematics as brk
 import cv_functions as cvfun
 import subprocess
+import shlex
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
 from copy import deepcopy
@@ -125,16 +126,17 @@ class RobotArm:
         return self.color, x, y
     
     def descend(self, x, y, z_ball):
+        print("descending")
         q_des = self.inv_kine(x, y, z_ball)
         self.movin(q_des) #may need to repeat this or shove this function in a while loop and do smaller steps
 
     def bash_start_stuff(self):
         Hookup = "cd ~/baxter_ws; ./baxter.sh; cd -"
         # Hookup = "cd ~; ls; cd -"
-        process = subprocess.Popen(Hookup.split(), shell=True)
+        process = subprocess.Popen(Hookup, shell=True)
 
-        Untuck_N_Source = "uta; source ~/Desktop/robotics_ws/devel/setup.bash --extend; cd ~/Desktop/robotics_ws/src/rad_baxter_limb/src/rad_baxter_limb"
-        process = subprocess.Popen(Untuck_N_Source.split(), shell=True)
+        Untuck_N_Source = shlex.split("uta; source ~/Desktop/robotics_ws/devel/setup.bash --extend; cd ~/Desktop/robotics_ws/src/rad_baxter_limb/src/rad_baxter_limb")
+        process = subprocess.Popen(Untuck_N_Source, shell=True)
 
     def bash_end_stuff(self):
         process = subprocess.Popen("ta", shell=True)
@@ -180,7 +182,7 @@ class RobotArm:
             print("Error, no target color assigned.")
 
     def main(self, args):
-        # self.bash_start_stuff()
+        self.bash_start_stuff()
         # cd ~/baxter_ws; ./baxter.sh; cd -; uta; source ~/Desktop/robotics_ws/devel/setup.bash --extend; cd ~/Desktop/robotics_ws/src/rad_baxter_limb/src/rad_baxter_limb
 
         #Initalize safe spot, buckets 1-3, and calibrate gripper
