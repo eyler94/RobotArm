@@ -15,6 +15,7 @@ from cv_bridge import CvBridge
 from copy import deepcopy
 import cv2
 import argparse
+from time import sleep
 
 class RobotArm:
     def __init__(self):
@@ -23,14 +24,17 @@ class RobotArm:
         self.color = 0  # red = 1, green = 2, blue = 3, No targets = 4
 
         #Not sure we will need all of these. Maybe just kp/ki
-        self.kp = 0.005
+        self.kp = 0.00005
         self.kd = 0.0
         self.ki = 0.0
-        # self.limb = RadBaxterLimb('right')
+        self.limb = RadBaxterLimb('right')
 
         #inverse kinematic gains
-        self.k1 = 20 
-        self.k2 = 1
+        # self.k1 = 20 
+        # self.k2 = 01
+        self.k1 = 0.1 
+        self.k2 = 0.001
+
 
         #image subscriber
         self.img_sub = rospy.Subscriber("/cameras/right_hand_camera/image", Image, self.imgCallback)
@@ -38,11 +42,13 @@ class RobotArm:
         self.CvImg = CvBridge()
 
         self.control_rate = rospy.Rate(500)
+        self.des_or = np.array(3)
     
     def imgCallback(self, data):
         # print("Converting Image")
         try:
             self.img = self.CvImg.imgmsg_to_cv2(data, "bgr8")
+            self.img = self.img[100:700, 200:1000,:]
         except CvBridgeError as e:
             print(e)
             
@@ -52,7 +58,9 @@ class RobotArm:
         i = 0
 
         # Calculate the necessary orientation, it is constant, so we just need to know what it is.
-        des_or = np.array([ 0.51176522,  3.07447603, -0.01423531])
+        
+        # des_or = np.array([ 0.51176522,  3.07447603, -0.01423531])
+        des_or = self.des_or
 
         while i < 1000: #max number of iterations so it doesn't run forever
             # Calculate the errors
@@ -66,20 +74,23 @@ class RobotArm:
             
             curr_pos = curr_pos[0:3]
             err_pos = np.array([x, y, z]) - curr_pos
-            err_or = des_or - curr_or
+            # print(err_pos)
+            err_or = -des_or + curr_or
+            # print(err_or)
 
             # Calculate the errors
             error = np.array([err_pos[0],err_pos[1],err_pos[2],err_or[0],err_or[1],err_or[2]])
             k = np.diag((self.k1,self.k1,self.k1,self.k2,self.k2,self.k2))
 
-            e = np.matmul(k,error)
+            e = np.dot(k,error)
+            # print(e)
             if np.linalg.norm(error) < eps:
                 break
 
             Jt = self.limb.get_kdl_jacobian_transpose()
             # Can make one row of the Jacobian zero if we don't care about one axis of orientation, or make e zero for that joint
 
-            self.q = self.limb.get_joint_angles() + np.matmul(Jt,e)
+            self.q = self.limb.get_joint_angles() + np.dot(Jt,e)
             i+=1
         return np.asarray(self.q).reshape(7)
 
@@ -88,7 +99,7 @@ class RobotArm:
         # dist = np.array([1e6, 1e6])
         dx = 1e6
         dy = 1e6
-        min_dist = 3 #Pixels. May want to change this
+        min_dist = 10 #Pixels. May want to change this
         curr_pos = self.limb.get_kdl_forward_position_kinematics()
         x = curr_pos.item(0)
         y = curr_pos.item(1)
@@ -120,20 +131,19 @@ class RobotArm:
             delta_y = dy * self.kp
             print('Dx: ', delta_x)
             print('Dy: ', delta_y)
-            x = x + delta_x
-            y = y + delta_y
+            x = x - delta_x # + or -
+            y = y - delta_y
             q = self.inv_kine(x, y, z)
             print('q', q)
             print('shape', q.shape)
-            self.movin(q)
-            temp = raw_input("Hit q if done")
-            if temp == 'q':
-                break
+            self.limb.set_joint_positions_mod(q)
         return self.color, x, y
     
     def descend(self, x, y, z_ball):
         print("descending")
         q_des = self.inv_kine(x, y, z_ball)
+        print('qdes:,', q_des)
+        # raw_input("Hit enter")
         self.movin(q_des) #may need to repeat this or shove this function in a while loop and do smaller steps
 
     def bash_start_stuff(self):
@@ -156,6 +166,14 @@ class RobotArm:
         self.bucket2_pos = self.limb.get_joint_angles()
         raw_input("Move to the bucket 3 position and press enter.")
         self.bucket3_pos = self.limb.get_joint_angles()
+        print("collecting z height.")
+        self.movin(self.safe_pos)
+        raw_input("Move to table height and press enter.")
+        position = self.limb.get_kdl_forward_position_kinematics()
+        self.z_ball = position[2]*np.ones([7])
+
+
+
 
     def init_gripper_right(self):
         self.right_gripper = baxter_interface.Gripper('right')
@@ -170,7 +188,7 @@ class RobotArm:
         self.left_gripper.open()
 
     def movin(self, target):
-        print('Target', target.shape)
+        # print('Target', target.shape)
         step = 1
         while step < 2500:
             self.limb.set_joint_positions_mod(target)
@@ -188,14 +206,14 @@ class RobotArm:
             print("Error, no target color assigned.")
 
     def main(self, args):
-        self.bash_start_stuff()
+        # self.bash_start_stuff()
         # cd ~/baxter_ws; ./baxter.sh; cd -; uta; source ~/Desktop/robotics_ws/devel/setup.bash --extend; cd ~/Desktop/robotics_ws/src/rad_baxter_limb/src/rad_baxter_limb
 
         #Initalize safe spot, buckets 1-3, and calibrate gripper
         if not args.get("spots", False):
             print("No location file provided.")
             self.init_spots()
-            spots = np.array([self.safe_pos, self.bucket1_pos, self.bucket2_pos, self.bucket3_pos])
+            spots = np.array([self.safe_pos, self.bucket1_pos, self.bucket2_pos, self.bucket3_pos, self.z_ball])
             np.save("spots.npy", spots)
         else:
             print("Loading file.")
@@ -204,30 +222,41 @@ class RobotArm:
             self.bucket1_pos = spots[1]
             self.bucket2_pos = spots[2]
             self.bucket3_pos = spots[3]
+            self.z_ball = spots[4]
 
         self.init_gripper_right()
 
         # Move to safe spot
         self.movin(self.safe_pos)
+        pos = self.limb.get_kdl_forward_position_kinematics()
+        q = pos[3:]
+        R = tf.transformations.quaternion_matrix(q)
+        theta = np.arccos((np.trace(R) - 1)/2.0)
+        temp = np.array([R[2,1] - R[1,2], R[0,2]-R[2,0], R[1,0] - R[0,1]])
+        k = temp/(2 * np.sin(theta))
+        self.des_or = k * theta
+
 
         # Open Gripper
         self.right_gripper.open()
 
         while not self.color==4:
-            # # Acquire/Move to target (set self.color = #)
-            # z_ball = 0.0 # TODO: Need to figure out what this is
+            # Acquire/Move to target (set self.color = #)
             self.color, x, y = self.acquire_targ()
-            # self.descend(x, y, z_ball)
+            print("self.z_ball", self.z_ball)
+            self.descend(x, y, self.z_ball[0])
 
             # Close Gripper
             self.right_gripper.close()
+            sleep(0.5)
     
             # Move to bucket
             self.move_Bucket()
 
             # Open Gripper
             self.right_gripper.open()
-
+            sleep(0.5)
+    
             # Move to safe spot
             self.movin(self.safe_pos)
 

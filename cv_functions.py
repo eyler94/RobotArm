@@ -69,10 +69,10 @@ def getMinDist(pts):
 def getColorAndTarget(pts_b, pts_g, pts_r):
     min_dist = 1e6
     target = None
-    if not len(pts_r) == 0:
-        color = 1
-        target  = getMinDist(pts_r)
-    elif not len(pts_g) == 0:
+    # if not len(pts_r) == 0:
+    #     color = 1
+    #     target  = getMinDist(pts_r)
+    if not len(pts_g) == 0:
         color = 2
         target = getMinDist(pts_g)
     elif not len(pts_b) == 0:
